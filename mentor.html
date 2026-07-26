@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>멘토 페이지 - 영어 멘토멘티 시험</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="wrap">
+  <a class="top-link" href="index.html">← 시험 페이지로</a>
+  <h1>멘토 페이지</h1>
+  <p class="subtitle">문제를 등록하고 학생들의 결과를 확인하세요.</p>
+
+  <!-- 잠금 화면 -->
+  <div id="lockScreen" class="card">
+    <div class="field">
+      <label for="pwInput">비밀번호</label>
+      <input type="password" id="pwInput" placeholder="비밀번호를 입력하세요" />
+    </div>
+    <button id="unlockBtn">입장</button>
+    <div id="lockError" class="error-msg hidden"></div>
+  </div>
+
+  <!-- 메인 화면 -->
+  <div id="mainScreen" class="hidden">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="questions">문제 관리</button>
+      <button class="tab-btn" data-tab="results">결과 조회</button>
+    </div>
+
+    <!-- 문제 관리 탭 -->
+    <div id="tabQuestions">
+      <div class="card">
+        <h2>새 문제 추가</h2>
+        <div class="field">
+          <label for="newQuestion">문제</label>
+          <textarea id="newQuestion" placeholder="예: '사과'를 영어로 쓰시오."></textarea>
+        </div>
+        <div class="field">
+          <label for="newAnswer">정답 (여러 개 인정 시 | 로 구분, 예: apple|Apple)</label>
+          <input type="text" id="newAnswer" placeholder="예: apple" />
+        </div>
+        <button id="addQuestionBtn">추가</button>
+        <div id="addError" class="error-msg hidden"></div>
+      </div>
+
+      <div class="card">
+        <h2>등록된 문제 목록</h2>
+        <div id="questionListMentor" class="muted">불러오는 중...</div>
+      </div>
+    </div>
+
+    <!-- 결과 조회 탭 -->
+    <div id="tabResults" class="hidden">
+      <div class="card">
+        <div class="row" style="justify-content: space-between; align-items: center;">
+          <h2 style="margin:0;">제출된 결과</h2>
+          <button class="secondary" id="refreshResultsBtn">새로고침</button>
+        </div>
+        <div id="resultListMentor" class="muted">불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="mentor.js"></script>
+</body>
+</html>

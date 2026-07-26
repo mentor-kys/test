@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>영어 멘토멘티 시험</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="wrap">
+  <a class="top-link" href="mentor.html">멘토 페이지 →</a>
+  <h1>영어 멘토멘티 시험</h1>
+  <p class="subtitle">이름을 입력하고 시험을 시작하세요.</p>
+
+  <!-- 시작 화면 -->
+  <div id="startScreen" class="card">
+    <div class="field">
+      <label for="studentName">이름</label>
+      <input type="text" id="studentName" placeholder="이름을 입력하세요" />
+    </div>
+    <button id="startBtn">시험 시작</button>
+    <div id="startError" class="error-msg hidden"></div>
+  </div>
+
+  <!-- 시험 화면 -->
+  <div id="examScreen" class="card hidden">
+    <h2>시험</h2>
+    <div id="questionList"></div>
+    <button id="submitBtn">제출하기</button>
+  </div>
+
+  <!-- 결과 화면 -->
+  <div id="resultScreen" class="card hidden">
+    <div class="result-banner">
+      <div class="muted" id="resultName"></div>
+      <div class="result-score" id="resultScore"></div>
+    </div>
+    <div id="resultDetail"></div>
+  </div>
+
+  <div id="loadingMsg" class="muted hidden">불러오는 중...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

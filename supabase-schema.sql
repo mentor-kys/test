@@ -42,6 +42,7 @@ alter table results enable row level security;
 create policy "exams select all" on exams for select using (true);
 create policy "exams insert all" on exams for insert with check (true);
 create policy "exams update all" on exams for update using (true) with check (true);
+create policy "exams delete all" on exams for delete using (true);
 
 create policy "questions select all" on questions for select using (true);
 create policy "questions insert all" on questions for insert with check (true);

@@ -186,13 +186,19 @@ async function loadManageListIntoView() {
     const date = new Date(exam.created_at).toLocaleString('ko-KR');
     const statusText = exam.is_closed ? '마감됨' : '진행중';
     const toggleLabel = exam.is_closed ? '다시 열기' : '마감하기';
+    const deleteBtn = exam.is_closed
+      ? `<button class="danger" data-delete-exam="${exam.id}" data-exam-name="${escapeHtml(exam.name)}">삭제</button>`
+      : '';
     return `
       <div class="list-row">
         <div class="list-row-main">
           <div class="list-row-title">${escapeHtml(exam.name)} <span class="muted">(${statusText})</span></div>
           <div class="list-row-sub">${date}</div>
         </div>
-        <button class="secondary" data-toggle-exam="${exam.id}" data-closed="${exam.is_closed}">${toggleLabel}</button>
+        <div class="row">
+          <button class="secondary" data-toggle-exam="${exam.id}" data-closed="${exam.is_closed}">${toggleLabel}</button>
+          ${deleteBtn}
+        </div>
       </div>
     `;
   }).join('');
@@ -201,6 +207,13 @@ async function loadManageListIntoView() {
     btn.addEventListener('click', () => handleToggleExamClosed(
       Number(btn.dataset.toggleExam),
       btn.dataset.closed === 'true',
+    ));
+  });
+
+  container.querySelectorAll('[data-delete-exam]').forEach((btn) => {
+    btn.addEventListener('click', () => handleDeleteExam(
+      Number(btn.dataset.deleteExam),
+      btn.dataset.examName,
     ));
   });
 }
@@ -213,6 +226,19 @@ async function handleToggleExamClosed(examId, currentlyClosed) {
 
   if (error) {
     alert('상태 변경 실패: ' + error.message);
+    return;
+  }
+  loadManageListIntoView();
+}
+
+async function handleDeleteExam(examId, examName) {
+  const ok = confirm(`"${examName}" 시험지를 삭제하시겠습니까?\n이 시험지를 응시한 학생들의 답안 기록도 함께 삭제되며, 되돌릴 수 없습니다.`);
+  if (!ok) return;
+
+  const { error } = await sbClient.from('exams').delete().eq('id', examId);
+
+  if (error) {
+    alert('삭제 실패: ' + error.message);
     return;
   }
   loadManageListIntoView();

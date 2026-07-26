@@ -8,7 +8,6 @@
 </head>
 <body>
 <div class="wrap">
-  <a class="top-link" href="mentor.html">멘토 페이지 →</a>
   <h1>영어 멘토멘티 시험</h1>
   <p class="subtitle">이름을 입력하고 시험을 시작하세요.</p>
 
@@ -18,27 +17,62 @@
       <label for="studentName">이름</label>
       <input type="text" id="studentName" placeholder="이름을 입력하세요" />
     </div>
-    <button id="startBtn">시험 시작</button>
     <div id="startError" class="error-msg hidden"></div>
+
+    <div class="start-actions">
+      <button id="startBtn" class="btn-start">시험 응시</button>
+      <div class="exam-time-note">응시 시간: 15분</div>
+    </div>
+
+    <div class="mentor-login-area">
+      <a class="btn-mentor-login" href="mentor.html">멘토 로그인</a>
+    </div>
   </div>
 
   <!-- 시험 화면 -->
   <div id="examScreen" class="card hidden">
-    <h2>시험</h2>
+    <div id="timerBar" class="timer-bar">15:00</div>
+    <h2 id="examTitle">시험</h2>
     <div id="questionList"></div>
-    <button id="submitBtn">제출하기</button>
+    <button id="endExamBtn" class="secondary">시험 종료</button>
   </div>
 
-  <!-- 결과 화면 -->
-  <div id="resultScreen" class="card hidden">
+  <!-- 제출 완료 화면 -->
+  <div id="doneScreen" class="card hidden">
     <div class="result-banner">
-      <div class="muted" id="resultName"></div>
-      <div class="result-score" id="resultScore"></div>
+      <h2>제출 완료</h2>
+      <p class="muted" id="doneMsg">수고하셨습니다. 결과는 멘토 선생님이 확인하실 예정입니다.</p>
     </div>
-    <div id="resultDetail"></div>
   </div>
 
   <div id="loadingMsg" class="muted hidden">불러오는 중...</div>
+</div>
+
+<!-- 시험 시작 확인 모달 -->
+<div id="startConfirmOverlay" class="overlay hidden">
+  <div class="overlay-card">
+    <p>시험을 시작하시겠습니까?<br />시작하면 15분 타이머가 시작됩니다.</p>
+    <div class="overlay-actions">
+      <button class="secondary" id="startCancelBtn">취소</button>
+      <button id="startConfirmBtn">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 카운트다운 -->
+<div id="countdownOverlay" class="overlay hidden">
+  <div class="countdown-number" id="countdownNumber">3</div>
+</div>
+
+<!-- 시험 종료 확인 모달 -->
+<div id="endConfirmOverlay" class="overlay hidden">
+  <div class="overlay-card">
+    <p>시험을 종료하시겠습니까?</p>
+    <div class="overlay-actions">
+      <button class="secondary" id="endCancelBtn">취소</button>
+      <button id="endConfirmBtn">확인</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

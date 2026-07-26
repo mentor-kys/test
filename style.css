@@ -200,3 +200,115 @@ button:disabled {
   text-decoration: none;
 }
 .top-link:hover { text-decoration: underline; }
+
+.center { text-align: center; }
+
+.start-actions {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.btn-start {
+  font-size: 1.15rem;
+  padding: 16px 40px;
+}
+
+.exam-time-note {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.mentor-login-area {
+  margin-top: 48px;
+  text-align: center;
+}
+
+.btn-mentor-login {
+  display: inline-block;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  text-decoration: none;
+}
+.btn-mentor-login:hover { background: #eef1f5; }
+
+.timer-bar {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+.timer-bar.low { color: var(--bad); }
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 24, 30, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.overlay-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  max-width: 360px;
+  width: calc(100% - 40px);
+  text-align: center;
+}
+
+.overlay-card p { margin: 0 0 20px; }
+
+.overlay-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.countdown-number {
+  font-size: 5rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.menu-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px 0;
+}
+
+.menu-btn {
+  padding: 20px;
+  font-size: 1.05rem;
+}
+
+.back-btn {
+  background: none;
+  color: var(--muted);
+  border: none;
+  padding: 0 0 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.back-btn:hover { text-decoration: underline; background: none; }
+
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover { background: #f7f9fc; }
+

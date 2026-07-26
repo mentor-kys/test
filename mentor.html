@@ -10,7 +10,6 @@
 <div class="wrap">
   <a class="top-link" href="index.html">← 시험 페이지로</a>
   <h1>멘토 페이지</h1>
-  <p class="subtitle">문제를 등록하고 학생들의 결과를 확인하세요.</p>
 
   <!-- 잠금 화면 -->
   <div id="lockScreen" class="card">
@@ -22,44 +21,66 @@
     <div id="lockError" class="error-msg hidden"></div>
   </div>
 
-  <!-- 메인 화면 -->
-  <div id="mainScreen" class="hidden">
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="questions">문제 관리</button>
-      <button class="tab-btn" data-tab="results">결과 조회</button>
+  <!-- 메뉴 화면 -->
+  <div id="menuScreen" class="menu-screen hidden">
+    <button class="menu-btn" id="goRegisterBtn">시험 문제 등록</button>
+    <button class="menu-btn secondary" id="goResultsBtn">시험지 확인</button>
+  </div>
+
+  <!-- 시험 문제 등록 화면 -->
+  <div id="registerScreen" class="hidden">
+    <button class="back-btn" id="backFromRegisterBtn">← 메뉴로</button>
+    <div class="card">
+      <h2>새 시험지 등록</h2>
+      <div class="field">
+        <label for="examName">시험지 이름</label>
+        <input type="text" id="examName" placeholder="예: 1차 단어 시험" />
+      </div>
+      <div class="field">
+        <label for="bulkQuestions">문제</label>
+        <textarea id="bulkQuestions" rows="12" placeholder="사과를 영어로 쓰시오.&#10;apple&#10;&#10;바나나를 영어로 쓰시오.&#10;banana|Banana"></textarea>
+        <div class="muted" style="margin-top:6px;">
+          문제와 문제 사이는 빈 줄로 구분하세요. 각 문제 블록의 마지막 줄이 정답, 그 위 줄들이 문제입니다. 정답을 여러 개 인정하려면 |로 구분하세요. (예: apple|Apple)
+        </div>
+      </div>
+      <button id="submitExamBtn">등록</button>
+      <div id="registerError" class="error-msg hidden"></div>
+      <div id="registerSuccess" class="muted hidden"></div>
     </div>
 
-    <!-- 문제 관리 탭 -->
-    <div id="tabQuestions">
-      <div class="card">
-        <h2>새 문제 추가</h2>
-        <div class="field">
-          <label for="newQuestion">문제</label>
-          <textarea id="newQuestion" placeholder="예: '사과'를 영어로 쓰시오."></textarea>
-        </div>
-        <div class="field">
-          <label for="newAnswer">정답 (여러 개 인정 시 | 로 구분, 예: apple|Apple)</label>
-          <input type="text" id="newAnswer" placeholder="예: apple" />
-        </div>
-        <button id="addQuestionBtn">추가</button>
-        <div id="addError" class="error-msg hidden"></div>
-      </div>
-
-      <div class="card">
-        <h2>등록된 문제 목록</h2>
-        <div id="questionListMentor" class="muted">불러오는 중...</div>
-      </div>
+    <div class="card">
+      <h2>등록된 시험지 목록</h2>
+      <div id="examListMentor" class="muted">불러오는 중...</div>
     </div>
+  </div>
 
-    <!-- 결과 조회 탭 -->
-    <div id="tabResults" class="hidden">
-      <div class="card">
-        <div class="row" style="justify-content: space-between; align-items: center;">
-          <h2 style="margin:0;">제출된 결과</h2>
-          <button class="secondary" id="refreshResultsBtn">새로고침</button>
-        </div>
-        <div id="resultListMentor" class="muted">불러오는 중...</div>
+  <!-- 시험지 확인: 응시자 목록 -->
+  <div id="resultsListScreen" class="hidden">
+    <button class="back-btn" id="backFromResultsBtn">← 메뉴로</button>
+    <div class="card">
+      <div class="row" style="justify-content: space-between; align-items:center;">
+        <h2 style="margin:0;">시험 응시자 목록</h2>
+        <button class="secondary" id="refreshStudentsBtn">새로고침</button>
       </div>
+      <div id="studentListMentor" class="muted">불러오는 중...</div>
+    </div>
+  </div>
+
+  <!-- 학생이 본 시험지 목록 -->
+  <div id="studentExamsScreen" class="hidden">
+    <button class="back-btn" id="backFromStudentExamsBtn">← 목록으로</button>
+    <div class="card">
+      <h2 id="studentExamsTitle"></h2>
+      <div id="studentExamsList" class="muted">불러오는 중...</div>
+    </div>
+  </div>
+
+  <!-- 시험지 답안 상세 -->
+  <div id="examDetailScreen" class="hidden">
+    <button class="back-btn" id="backFromExamDetailBtn">← 목록으로</button>
+    <div class="card">
+      <h2 id="examDetailTitle"></h2>
+      <div id="examDetailContent" class="muted">불러오는 중...</div>
     </div>
   </div>
 </div>

@@ -20,15 +20,6 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
-function normalize(str) {
-  return (str || '').trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
-function isCorrect(studentAnswer, answerText) {
-  const accepted = answerText.split('|').map(normalize);
-  return accepted.includes(normalize(studentAnswer));
-}
-
 function formatTime(ms) {
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
   const m = Math.floor(totalSec / 60);
@@ -238,24 +229,16 @@ async function finishExam(auto) {
   if (timerInterval) clearInterval(timerInterval);
 
   const answers = getCurrentAnswers();
-  const detail = currentExam.questions.map((q, i) => {
-    const studentAnswer = answers[i] || '';
-    const correct = isCorrect(studentAnswer, q.answer_text);
-    return {
-      question: q.question_text,
-      correct_answer: q.answer_text,
-      student_answer: studentAnswer,
-      is_correct: correct,
-    };
-  });
-  const score = detail.filter((d) => d.is_correct).length;
+  const detail = currentExam.questions.map((q, i) => ({
+    question: q.question_text,
+    student_answer: answers[i] || '',
+  }));
 
   try {
     const { error } = await sbClient.from('results').insert({
       exam_id: currentExam.id,
       exam_name: currentExam.name,
       student_name: studentName,
-      score,
       total: currentExam.questions.length,
       detail,
     });

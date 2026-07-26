@@ -17,7 +17,6 @@ create table questions (
   id bigint generated always as identity primary key,
   exam_id bigint not null references exams(id) on delete cascade,
   question_text text not null,
-  answer_text text not null,
   order_num integer not null default 0,
   created_at timestamptz not null default now()
 );
@@ -27,7 +26,6 @@ create table results (
   exam_id bigint not null references exams(id) on delete cascade,
   exam_name text not null,
   student_name text not null,
-  score integer not null,
   total integer not null,
   detail jsonb not null,
   submitted_at timestamptz not null default now()

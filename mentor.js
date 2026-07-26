@@ -52,24 +52,14 @@ function checkUnlocked() {
 function parseQuestionBlocks(text) {
   const blocks = text.split(/\n\s*\n+/).map((b) => b.trim()).filter(Boolean);
   const parsed = [];
-  let skipped = 0;
 
   blocks.forEach((block) => {
     const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
-    if (lines.length < 2) {
-      skipped++;
-      return;
-    }
-    const answer = lines[lines.length - 1];
-    const question = lines.slice(0, -1).join(' ');
-    if (!question || !answer) {
-      skipped++;
-      return;
-    }
-    parsed.push({ question_text: question, answer_text: answer });
+    const question = lines.join(' ');
+    if (question) parsed.push({ question_text: question });
   });
 
-  return { parsed, skipped };
+  return { parsed };
 }
 
 async function loadExamListIntoView() {
@@ -123,7 +113,7 @@ async function handleSubmitExam() {
     return;
   }
 
-  const { parsed, skipped } = parseQuestionBlocks(bulkText);
+  const { parsed } = parseQuestionBlocks(bulkText);
   if (parsed.length === 0) {
     el('registerError').textContent = '등록할 수 있는 문제가 없습니다. 형식을 확인해주세요.';
     el('registerError').classList.remove('hidden');
@@ -143,14 +133,12 @@ async function handleSubmitExam() {
     const rows = parsed.map((q, i) => ({
       exam_id: exam.id,
       question_text: q.question_text,
-      answer_text: q.answer_text,
       order_num: i,
     }));
     const { error: qErr } = await sbClient.from('questions').insert(rows);
     if (qErr) throw qErr;
 
-    el('registerSuccess').textContent = `"${examName}" 시험지에 문제 ${parsed.length}개를 등록했습니다.` +
-      (skipped > 0 ? ` (형식이 맞지 않아 건너뛴 블록 ${skipped}개)` : '');
+    el('registerSuccess').textContent = `"${examName}" 시험지에 문제 ${parsed.length}개를 등록했습니다.`;
     el('registerSuccess').classList.remove('hidden');
     el('examName').value = '';
     el('bulkQuestions').value = '';
@@ -292,7 +280,7 @@ async function openStudentExams(studentName) {
 
   const { data, error } = await sbClient
     .from('results')
-    .select('exam_id, exam_name, score, total, submitted_at')
+    .select('exam_id, exam_name, total, submitted_at')
     .eq('student_name', studentName)
     .order('submitted_at', { ascending: false });
 
@@ -314,7 +302,7 @@ async function openStudentExams(studentName) {
     <div class="list-row clickable-row" data-exam-id="${r.exam_id}" data-exam-name="${escapeHtml(r.exam_name)}">
       <div class="list-row-main">
         <div class="list-row-title">${escapeHtml(r.exam_name)}</div>
-        <div class="list-row-sub">${r.score} / ${r.total} · ${new Date(r.submitted_at).toLocaleString('ko-KR')}</div>
+        <div class="list-row-sub">문제 ${r.total}개 · ${new Date(r.submitted_at).toLocaleString('ko-KR')}</div>
       </div>
       <div class="muted">›</div>
     </div>
@@ -353,21 +341,17 @@ async function openExamDetail(studentName, examId, examName) {
     return;
   }
 
-  container.innerHTML = data.map((r, i) => {
+  container.innerHTML = data.map((r) => {
     const date = new Date(r.submitted_at).toLocaleString('ko-KR');
-    const detailHtml = (r.detail || []).map((d) => `
+    const detailHtml = (r.detail || []).map((d, i) => `
       <div class="answer-row">
-        <div>
-          <div>${escapeHtml(d.question)}</div>
-          <div class="muted">답: ${escapeHtml(d.student_answer) || '(미입력)'}</div>
-        </div>
-        <div class="${d.is_correct ? 'mark-good' : 'mark-bad'}">${d.is_correct ? 'O' : 'X'}</div>
+        <div>${i + 1}. ${escapeHtml(d.student_answer) || '(미입력)'}</div>
       </div>
     `).join('');
 
     return `
       <div class="card" style="margin-bottom:12px;">
-        <div class="list-row-sub">${date} · ${r.score} / ${r.total}</div>
+        <div class="list-row-sub">${date} · 문제 ${r.total}개</div>
         ${detailHtml}
       </div>
     `;

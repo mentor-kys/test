@@ -98,29 +98,58 @@ function showScreen(name) {
 }
 
 // ===== 시작 화면: 응시 가능한 시험지 목록 =====
+let openExamsCache = [];
+
+async function getCompletedExamIds(name) {
+  if (!name) return new Set();
+  const { data, error } = await sbClient
+    .from('results')
+    .select('exam_id')
+    .eq('student_name', name);
+  if (error) return new Set();
+  return new Set((data || []).map((r) => r.exam_id));
+}
+
+function renderExamRows(exams, completedIds) {
+  const container = el('examSelectList');
+  if (exams.length === 0) {
+    container.textContent = '현재 응시 가능한 시험지가 없습니다. 멘토에게 문의하세요.';
+    return;
+  }
+  container.innerHTML = exams.map((exam) => {
+    const taken = completedIds.has(exam.id);
+    return `
+      <div class="list-row ${taken ? 'exam-taken' : 'clickable-row'}" data-exam-id="${exam.id}" data-exam-name="${escapeHtml(exam.name)}" ${taken ? 'data-taken="true"' : ''}>
+        <div class="list-row-main">
+          <div class="list-row-title">${escapeHtml(exam.name)}</div>
+          ${taken ? '<div class="list-row-sub">이미 응시했습니다</div>' : ''}
+        </div>
+        <div class="muted">${taken ? '' : '›'}</div>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('[data-exam-id]:not([data-taken])').forEach((rowEl) => {
+    rowEl.addEventListener('click', () => handleSelectExam(Number(rowEl.dataset.examId), rowEl.dataset.examName));
+  });
+}
+
 async function loadAndRenderExamList() {
   const container = el('examSelectList');
   container.textContent = '불러오는 중...';
   try {
-    const exams = await loadOpenExams();
-    if (exams.length === 0) {
-      container.textContent = '현재 응시 가능한 시험지가 없습니다. 멘토에게 문의하세요.';
-      return;
-    }
-    container.innerHTML = exams.map((exam) => `
-      <div class="list-row clickable-row" data-exam-id="${exam.id}" data-exam-name="${escapeHtml(exam.name)}">
-        <div class="list-row-main">
-          <div class="list-row-title">${escapeHtml(exam.name)}</div>
-        </div>
-        <div class="muted">›</div>
-      </div>
-    `).join('');
-    container.querySelectorAll('[data-exam-id]').forEach((rowEl) => {
-      rowEl.addEventListener('click', () => handleSelectExam(Number(rowEl.dataset.examId), rowEl.dataset.examName));
-    });
+    openExamsCache = await loadOpenExams();
+    const completedIds = await getCompletedExamIds(el('studentName').value.trim());
+    renderExamRows(openExamsCache, completedIds);
   } catch (e) {
     container.textContent = '시험지 목록을 불러오는 중 오류가 발생했습니다: ' + e.message;
   }
+}
+
+async function refreshCompletionState() {
+  if (openExamsCache.length === 0) return;
+  const completedIds = await getCompletedExamIds(el('studentName').value.trim());
+  renderExamRows(openExamsCache, completedIds);
 }
 
 async function handleSelectExam(examId, examName) {
@@ -136,6 +165,19 @@ async function handleSelectExam(examId, examName) {
   el('loadingMsg').classList.remove('hidden');
 
   try {
+    const { data: existing } = await sbClient
+      .from('results')
+      .select('id')
+      .eq('student_name', name)
+      .eq('exam_id', examId)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      el('startError').textContent = '이미 응시한 시험지입니다.';
+      el('startError').classList.remove('hidden');
+      await refreshCompletionState();
+      return;
+    }
+
     const exam = await loadExamById(examId);
     if (!exam || exam.questions.length === 0) {
       el('startError').textContent = '시험지를 불러올 수 없습니다. 멘토에게 문의하세요.';
@@ -175,11 +217,14 @@ function runCountdown(onDone) {
 
 function renderQuestions() {
   el('examTitle').textContent = currentExam.name;
+  el('examInfoBox').textContent = `총 ${currentExam.questions.length}문제 · 제한시간 15분`;
   const list = el('questionList');
   list.innerHTML = currentExam.questions.map((q, i) => `
     <div class="question-item">
-      <div class="q-index">문제 ${i + 1} / ${currentExam.questions.length}</div>
-      <div class="q-text">${escapeHtml(q.question_text)}</div>
+      <div class="q-row">
+        <span class="q-num">${i + 1}.</span>
+        <span class="q-text">${escapeHtml(q.question_text)}</span>
+      </div>
       <input type="text" class="answer-input" data-index="${i}" placeholder="답을 입력하세요" />
     </div>
   `).join('');
@@ -294,6 +339,8 @@ async function tryResumeDraft() {
 
 window.addEventListener('DOMContentLoaded', async () => {
   initSupabase();
+
+  el('studentName').addEventListener('blur', refreshCompletionState);
 
   el('startCancelBtn').addEventListener('click', () => {
     el('startConfirmOverlay').classList.add('hidden');

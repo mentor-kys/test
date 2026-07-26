@@ -11,7 +11,10 @@ const SCREENS = [
   'studentExamsScreen',
   'examDetailScreen',
   'manageScreen',
+  'editExamScreen',
 ];
+
+let editingExamId = null;
 
 function initSupabase() {
   if (!window.supabase) throw new Error('Supabase 라이브러리를 불러오지 못했습니다.');
@@ -184,6 +187,7 @@ async function loadManageListIntoView() {
           <div class="list-row-sub">${date}</div>
         </div>
         <div class="row">
+          <button class="secondary icon-btn" data-edit-exam="${exam.id}" title="문제 수정">✏️</button>
           <button class="secondary" data-toggle-exam="${exam.id}" data-closed="${exam.is_closed}">${toggleLabel}</button>
           ${deleteBtn}
         </div>
@@ -204,6 +208,94 @@ async function loadManageListIntoView() {
       btn.dataset.examName,
     ));
   });
+
+  container.querySelectorAll('[data-edit-exam]').forEach((btn) => {
+    btn.addEventListener('click', () => openEditExam(Number(btn.dataset.editExam)));
+  });
+}
+
+// ===== 시험지 문제 수정 =====
+async function openEditExam(examId) {
+  editingExamId = examId;
+  showMentorScreen('editExamScreen');
+  el('editExamError').classList.add('hidden');
+  el('editExamSuccess').classList.add('hidden');
+  el('editExamName').value = '';
+  el('editBulkQuestions').value = '불러오는 중...';
+
+  const { data: exam, error: examErr } = await sbClient
+    .from('exams')
+    .select('*')
+    .eq('id', examId)
+    .maybeSingle();
+
+  const { data: questions, error: qErr } = await sbClient
+    .from('questions')
+    .select('*')
+    .eq('exam_id', examId)
+    .order('order_num', { ascending: true });
+
+  if (examErr || qErr || !exam) {
+    el('editBulkQuestions').value = '';
+    el('editExamError').textContent = '불러오기 실패: ' + ((examErr || qErr || {}).message || '알 수 없는 오류');
+    el('editExamError').classList.remove('hidden');
+    return;
+  }
+
+  el('editExamName').value = exam.name;
+  el('editBulkQuestions').value = (questions || []).map((q) => q.question_text).join('\n\n');
+}
+
+async function handleSaveEditExam() {
+  const examName = el('editExamName').value.trim();
+  const bulkText = el('editBulkQuestions').value;
+  el('editExamError').classList.add('hidden');
+  el('editExamSuccess').classList.add('hidden');
+
+  if (!examName) {
+    el('editExamError').textContent = '시험지 이름을 입력해주세요.';
+    el('editExamError').classList.remove('hidden');
+    return;
+  }
+
+  const { parsed } = parseQuestionBlocks(bulkText);
+  if (parsed.length === 0) {
+    el('editExamError').textContent = '등록할 수 있는 문제가 없습니다. 형식을 확인해주세요.';
+    el('editExamError').classList.remove('hidden');
+    return;
+  }
+
+  el('saveEditExamBtn').disabled = true;
+
+  try {
+    const { error: renameErr } = await sbClient
+      .from('exams')
+      .update({ name: examName })
+      .eq('id', editingExamId);
+    if (renameErr) throw renameErr;
+
+    const { error: delErr } = await sbClient
+      .from('questions')
+      .delete()
+      .eq('exam_id', editingExamId);
+    if (delErr) throw delErr;
+
+    const rows = parsed.map((q, i) => ({
+      exam_id: editingExamId,
+      question_text: q.question_text,
+      order_num: i,
+    }));
+    const { error: insErr } = await sbClient.from('questions').insert(rows);
+    if (insErr) throw insErr;
+
+    el('editExamSuccess').textContent = `저장했습니다. (문제 ${parsed.length}개)`;
+    el('editExamSuccess').classList.remove('hidden');
+  } catch (e) {
+    el('editExamError').textContent = '저장 실패: ' + e.message;
+    el('editExamError').classList.remove('hidden');
+  } finally {
+    el('saveEditExamBtn').disabled = false;
+  }
 }
 
 async function handleToggleExamClosed(examId, currentlyClosed) {
@@ -383,10 +475,12 @@ window.addEventListener('DOMContentLoaded', () => {
   el('backFromStudentExamsBtn').addEventListener('click', () => showMentorScreen('resultsListScreen'));
   el('backFromExamDetailBtn').addEventListener('click', () => openStudentExams(selectedStudent));
   el('backFromManageBtn').addEventListener('click', () => showMentorScreen('menuScreen'));
+  el('backFromEditExamBtn').addEventListener('click', () => showMentorScreen('manageScreen'));
 
   el('submitExamBtn').addEventListener('click', handleSubmitExam);
   el('refreshStudentsBtn').addEventListener('click', loadStudentListIntoView);
   el('refreshManageBtn').addEventListener('click', loadManageListIntoView);
+  el('saveEditExamBtn').addEventListener('click', handleSaveEditExam);
 
   checkUnlocked();
 });

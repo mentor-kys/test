@@ -44,6 +44,7 @@ create policy "exams delete all" on exams for delete using (true);
 
 create policy "questions select all" on questions for select using (true);
 create policy "questions insert all" on questions for insert with check (true);
+create policy "questions delete all" on questions for delete using (true);
 
 create policy "results select all" on results for select using (true);
 create policy "results insert all" on results for insert with check (true);

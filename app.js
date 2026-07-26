@@ -273,6 +273,12 @@ function startTimer() {
 async function finishExam(auto) {
   if (timerInterval) clearInterval(timerInterval);
 
+  const remainingMs = Math.max(0, endTime - Date.now());
+  const durationSeconds = Math.min(
+    Math.round(EXAM_DURATION_MS / 1000),
+    Math.round((EXAM_DURATION_MS - remainingMs) / 1000),
+  );
+
   const answers = getCurrentAnswers();
   const detail = currentExam.questions.map((q, i) => ({
     question: q.question_text,
@@ -285,6 +291,7 @@ async function finishExam(auto) {
       exam_name: currentExam.name,
       student_name: studentName,
       total: currentExam.questions.length,
+      duration_seconds: durationSeconds,
       detail,
     });
     if (error) throw error;
@@ -293,9 +300,10 @@ async function finishExam(auto) {
   }
 
   clearDraft();
+  const durationText = `${Math.floor(durationSeconds / 60)}분 ${durationSeconds % 60}초`;
   el('doneMsg').textContent = auto
-    ? '응시 시간이 종료되어 자동으로 제출되었습니다. 수고하셨습니다.'
-    : '수고하셨습니다. 결과는 멘토 선생님이 확인하실 예정입니다.';
+    ? `응시 시간이 종료되어 자동으로 제출되었습니다. (소요 시간: ${durationText}) 수고하셨습니다.`
+    : `수고하셨습니다. (소요 시간: ${durationText}) 결과는 멘토 선생님이 확인하실 예정입니다.`;
   showScreen('doneScreen');
 }
 

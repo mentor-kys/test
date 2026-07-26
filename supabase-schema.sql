@@ -27,6 +27,7 @@ create table results (
   exam_name text not null,
   student_name text not null,
   total integer not null,
+  duration_seconds integer,
   detail jsonb not null,
   submitted_at timestamptz not null default now()
 );

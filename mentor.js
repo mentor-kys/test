@@ -29,6 +29,13 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
+function formatDuration(seconds) {
+  if (seconds === null || seconds === undefined) return '소요시간 알 수 없음';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}분 ${s}초`;
+}
+
 function showMentorScreen(name) {
   SCREENS.forEach((id) => el(id).classList.toggle('hidden', id !== name));
 }
@@ -436,7 +443,7 @@ async function openExamDetail(studentName, examId, examName) {
 
     return `
       <div class="card" style="margin-bottom:12px;">
-        <div class="list-row-sub">${date} · 문제 ${r.total}개</div>
+        <div class="list-row-sub">${date} · 문제 ${r.total}개 · 소요 시간 ${formatDuration(r.duration_seconds)}</div>
         ${detailHtml}
       </div>
     `;

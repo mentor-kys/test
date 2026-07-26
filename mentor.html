@@ -25,6 +25,7 @@
   <div id="menuScreen" class="menu-screen hidden">
     <button class="menu-btn" id="goRegisterBtn">시험 문제 등록</button>
     <button class="menu-btn secondary" id="goResultsBtn">시험지 확인</button>
+    <button class="menu-btn secondary" id="goManageBtn">시험지 관리</button>
   </div>
 
   <!-- 시험 문제 등록 화면 -->
@@ -81,6 +82,18 @@
     <div class="card">
       <h2 id="examDetailTitle"></h2>
       <div id="examDetailContent" class="muted">불러오는 중...</div>
+    </div>
+  </div>
+
+  <!-- 시험지 관리 -->
+  <div id="manageScreen" class="hidden">
+    <button class="back-btn" id="backFromManageBtn">← 메뉴로</button>
+    <div class="card">
+      <div class="row" style="justify-content: space-between; align-items:center;">
+        <h2 style="margin:0;">시험지 관리</h2>
+        <button class="secondary" id="refreshManageBtn">새로고침</button>
+      </div>
+      <div id="manageListMentor" class="muted">불러오는 중...</div>
     </div>
   </div>
 </div>

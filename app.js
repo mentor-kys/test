@@ -37,24 +37,14 @@ function formatTime(ms) {
 }
 
 // ===== 시험지 불러오기 =====
-async function loadLatestExam() {
-  const { data: exams, error: examErr } = await sbClient
+async function loadOpenExams() {
+  const { data, error } = await sbClient
     .from('exams')
     .select('*')
-    .order('created_at', { ascending: false })
-    .limit(1);
-  if (examErr) throw examErr;
-  if (!exams || exams.length === 0) return null;
-
-  const exam = exams[0];
-  const { data: questions, error: qErr } = await sbClient
-    .from('questions')
-    .select('*')
-    .eq('exam_id', exam.id)
-    .order('order_num', { ascending: true });
-  if (qErr) throw qErr;
-
-  return { id: exam.id, name: exam.name, questions: questions || [] };
+    .eq('is_closed', false)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
 }
 
 async function loadExamById(examId) {
@@ -116,8 +106,33 @@ function showScreen(name) {
   });
 }
 
-// ===== 시작 화면 =====
-async function handleStart() {
+// ===== 시작 화면: 응시 가능한 시험지 목록 =====
+async function loadAndRenderExamList() {
+  const container = el('examSelectList');
+  container.textContent = '불러오는 중...';
+  try {
+    const exams = await loadOpenExams();
+    if (exams.length === 0) {
+      container.textContent = '현재 응시 가능한 시험지가 없습니다. 멘토에게 문의하세요.';
+      return;
+    }
+    container.innerHTML = exams.map((exam) => `
+      <div class="list-row clickable-row" data-exam-id="${exam.id}" data-exam-name="${escapeHtml(exam.name)}">
+        <div class="list-row-main">
+          <div class="list-row-title">${escapeHtml(exam.name)}</div>
+        </div>
+        <div class="muted">›</div>
+      </div>
+    `).join('');
+    container.querySelectorAll('[data-exam-id]').forEach((rowEl) => {
+      rowEl.addEventListener('click', () => handleSelectExam(Number(rowEl.dataset.examId), rowEl.dataset.examName));
+    });
+  } catch (e) {
+    container.textContent = '시험지 목록을 불러오는 중 오류가 발생했습니다: ' + e.message;
+  }
+}
+
+async function handleSelectExam(examId, examName) {
   const name = el('studentName').value.trim();
   el('startError').classList.add('hidden');
 
@@ -128,24 +143,23 @@ async function handleStart() {
   }
 
   el('loadingMsg').classList.remove('hidden');
-  el('startBtn').disabled = true;
 
   try {
-    const exam = await loadLatestExam();
+    const exam = await loadExamById(examId);
     if (!exam || exam.questions.length === 0) {
-      el('startError').textContent = '등록된 시험지가 없습니다. 멘토에게 문의하세요.';
+      el('startError').textContent = '시험지를 불러올 수 없습니다. 멘토에게 문의하세요.';
       el('startError').classList.remove('hidden');
       return;
     }
     currentExam = exam;
     studentName = name;
+    el('startConfirmText').innerHTML = `"${escapeHtml(examName)}" 시험을 시작하시겠습니까?<br />시작하면 15분 타이머가 시작됩니다.`;
     el('startConfirmOverlay').classList.remove('hidden');
   } catch (e) {
     el('startError').textContent = '시험지를 불러오는 중 오류가 발생했습니다: ' + e.message;
     el('startError').classList.remove('hidden');
   } finally {
     el('loadingMsg').classList.add('hidden');
-    el('startBtn').disabled = false;
   }
 }
 
@@ -298,8 +312,6 @@ async function tryResumeDraft() {
 window.addEventListener('DOMContentLoaded', async () => {
   initSupabase();
 
-  el('startBtn').addEventListener('click', handleStart);
-
   el('startCancelBtn').addEventListener('click', () => {
     el('startConfirmOverlay').classList.add('hidden');
   });
@@ -320,5 +332,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     finishExam(false);
   });
 
-  await tryResumeDraft();
+  const resumed = await tryResumeDraft();
+  if (!resumed) {
+    loadAndRenderExamList();
+  }
 });

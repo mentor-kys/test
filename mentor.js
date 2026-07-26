@@ -10,6 +10,7 @@ const SCREENS = [
   'resultsListScreen',
   'studentExamsScreen',
   'examDetailScreen',
+  'manageScreen',
 ];
 
 function initSupabase() {
@@ -95,13 +96,14 @@ async function loadExamListIntoView() {
     countByExam[q.exam_id] = (countByExam[q.exam_id] || 0) + 1;
   });
 
-  container.innerHTML = exams.map((exam, i) => {
+  container.innerHTML = exams.map((exam) => {
     const date = new Date(exam.created_at).toLocaleString('ko-KR');
     const count = countByExam[exam.id] || 0;
+    const statusText = exam.is_closed ? '마감됨' : '진행중';
     return `
       <div class="list-row">
         <div class="list-row-main">
-          <div class="list-row-title">${escapeHtml(exam.name)} ${i === 0 ? '<span class="muted">(현재 시험)</span>' : ''}</div>
+          <div class="list-row-title">${escapeHtml(exam.name)} <span class="muted">(${statusText})</span></div>
           <div class="list-row-sub">${date} · 문제 ${count}개</div>
         </div>
       </div>
@@ -159,6 +161,61 @@ async function handleSubmitExam() {
   } finally {
     el('submitExamBtn').disabled = false;
   }
+}
+
+// ===== 시험지 관리 =====
+async function loadManageListIntoView() {
+  const container = el('manageListMentor');
+  container.textContent = '불러오는 중...';
+
+  const { data: exams, error } = await sbClient
+    .from('exams')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    container.textContent = '불러오기 실패: ' + error.message;
+    return;
+  }
+  if (!exams || exams.length === 0) {
+    container.textContent = '등록된 시험지가 없습니다.';
+    return;
+  }
+
+  container.innerHTML = exams.map((exam) => {
+    const date = new Date(exam.created_at).toLocaleString('ko-KR');
+    const statusText = exam.is_closed ? '마감됨' : '진행중';
+    const toggleLabel = exam.is_closed ? '다시 열기' : '마감하기';
+    return `
+      <div class="list-row">
+        <div class="list-row-main">
+          <div class="list-row-title">${escapeHtml(exam.name)} <span class="muted">(${statusText})</span></div>
+          <div class="list-row-sub">${date}</div>
+        </div>
+        <button class="secondary" data-toggle-exam="${exam.id}" data-closed="${exam.is_closed}">${toggleLabel}</button>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('[data-toggle-exam]').forEach((btn) => {
+    btn.addEventListener('click', () => handleToggleExamClosed(
+      Number(btn.dataset.toggleExam),
+      btn.dataset.closed === 'true',
+    ));
+  });
+}
+
+async function handleToggleExamClosed(examId, currentlyClosed) {
+  const { error } = await sbClient
+    .from('exams')
+    .update({ is_closed: !currentlyClosed })
+    .eq('id', examId);
+
+  if (error) {
+    alert('상태 변경 실패: ' + error.message);
+    return;
+  }
+  loadManageListIntoView();
 }
 
 // ===== 시험지 확인: 응시자 목록 =====
@@ -306,14 +363,20 @@ window.addEventListener('DOMContentLoaded', () => {
     showMentorScreen('resultsListScreen');
     loadStudentListIntoView();
   });
+  el('goManageBtn').addEventListener('click', () => {
+    showMentorScreen('manageScreen');
+    loadManageListIntoView();
+  });
 
   el('backFromRegisterBtn').addEventListener('click', () => showMentorScreen('menuScreen'));
   el('backFromResultsBtn').addEventListener('click', () => showMentorScreen('menuScreen'));
   el('backFromStudentExamsBtn').addEventListener('click', () => showMentorScreen('resultsListScreen'));
   el('backFromExamDetailBtn').addEventListener('click', () => openStudentExams(selectedStudent));
+  el('backFromManageBtn').addEventListener('click', () => showMentorScreen('menuScreen'));
 
   el('submitExamBtn').addEventListener('click', handleSubmitExam);
   el('refreshStudentsBtn').addEventListener('click', loadStudentListIntoView);
+  el('refreshManageBtn').addEventListener('click', loadManageListIntoView);
 
   checkUnlocked();
 });

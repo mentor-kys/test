@@ -9,6 +9,7 @@ drop table if exists exams;
 create table exams (
   id bigint generated always as identity primary key,
   name text not null,
+  is_closed boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -40,6 +41,7 @@ alter table results enable row level security;
 -- 아래 정책은 "누구나 읽고 쓸 수 있게" 열어둡니다.
 create policy "exams select all" on exams for select using (true);
 create policy "exams insert all" on exams for insert with check (true);
+create policy "exams update all" on exams for update using (true) with check (true);
 
 create policy "questions select all" on questions for select using (true);
 create policy "questions insert all" on questions for insert with check (true);

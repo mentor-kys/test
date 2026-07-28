@@ -28,6 +28,7 @@ create table results (
   student_name text not null,
   total integer not null,
   duration_seconds integer,
+  graded_score integer,
   detail jsonb not null,
   submitted_at timestamptz not null default now()
 );
@@ -49,3 +50,4 @@ create policy "questions delete all" on questions for delete using (true);
 
 create policy "results select all" on results for select using (true);
 create policy "results insert all" on results for insert with check (true);
+create policy "results update all" on results for update using (true) with check (true);

@@ -201,6 +201,34 @@ button:disabled {
 .mark-good { color: var(--good); font-weight: 700; }
 .mark-bad { color: var(--bad); font-weight: 700; }
 
+.grade-buttons {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.grade-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-weight: 800;
+  background: #fff;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.grade-btn.grade-o.active {
+  background: var(--good);
+  color: #fff;
+  border-color: var(--good);
+}
+
+.grade-btn.grade-x.active {
+  background: var(--bad);
+  color: #fff;
+  border-color: var(--bad);
+}
+
 .list-row {
   display: flex;
   justify-content: space-between;

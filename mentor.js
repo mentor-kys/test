@@ -12,9 +12,11 @@ const SCREENS = [
   'examDetailScreen',
   'manageScreen',
   'editExamScreen',
+  'chartScreen',
 ];
 
 let editingExamId = null;
+let scoreChartInstance = null;
 
 function initSupabase() {
   if (!window.supabase) throw new Error('Supabase 라이브러리를 불러오지 못했습니다.');
@@ -409,6 +411,8 @@ async function openStudentExams(studentName) {
   });
 }
 
+let examDetailData = [];
+
 async function openExamDetail(studentName, examId, examName) {
   selectedExamId = examId;
   selectedExamName = examName;
@@ -433,21 +437,121 @@ async function openExamDetail(studentName, examId, examName) {
     return;
   }
 
-  container.innerHTML = data.map((r) => {
+  examDetailData = data;
+  renderExamDetail();
+}
+
+function renderExamDetail() {
+  const container = el('examDetailContent');
+
+  container.innerHTML = examDetailData.map((r) => {
     const date = new Date(r.submitted_at).toLocaleString('ko-KR');
-    const detailHtml = (r.detail || []).map((d, i) => `
+    const detail = r.detail || [];
+    const gradedCount = detail.filter((d) => d.is_correct === true).length;
+
+    const detailHtml = detail.map((d, i) => `
       <div class="answer-row">
         <div>${i + 1}. ${escapeHtml(d.student_answer) || '(미입력)'}</div>
+        <div class="grade-buttons">
+          <button class="grade-btn grade-o ${d.is_correct === true ? 'active' : ''}" data-result-id="${r.id}" data-q-index="${i}" data-grade="true">O</button>
+          <button class="grade-btn grade-x ${d.is_correct === false ? 'active' : ''}" data-result-id="${r.id}" data-q-index="${i}" data-grade="false">X</button>
+        </div>
       </div>
     `).join('');
 
     return `
       <div class="card" style="margin-bottom:12px;">
-        <div class="list-row-sub">${date} · 문제 ${r.total}개 · 소요 시간 ${formatDuration(r.duration_seconds)}</div>
+        <div class="list-row-sub">${date} · 소요 시간 ${formatDuration(r.duration_seconds)}</div>
+        <div class="list-row-title" style="margin-bottom:8px;">점수: ${gradedCount} / ${r.total}</div>
         ${detailHtml}
       </div>
     `;
   }).join('');
+
+  container.querySelectorAll('.grade-btn').forEach((btn) => {
+    btn.addEventListener('click', () => handleGradeAnswer(
+      Number(btn.dataset.resultId),
+      Number(btn.dataset.qIndex),
+      btn.dataset.grade === 'true',
+    ));
+  });
+}
+
+async function handleGradeAnswer(resultId, qIndex, isCorrect) {
+  const r = examDetailData.find((row) => row.id === resultId);
+  if (!r) return;
+
+  const prev = r.detail[qIndex].is_correct;
+  r.detail[qIndex].is_correct = prev === isCorrect ? null : isCorrect;
+  const gradedScore = r.detail.filter((d) => d.is_correct === true).length;
+  r.graded_score = gradedScore;
+  renderExamDetail();
+
+  const { error } = await sbClient
+    .from('results')
+    .update({ detail: r.detail, graded_score: gradedScore })
+    .eq('id', resultId);
+
+  if (error) {
+    alert('채점 저장 실패: ' + error.message);
+  }
+}
+
+// ===== 성적 그래프 =====
+async function loadScoreChart() {
+  const msg = el('chartMsg');
+  msg.textContent = '불러오는 중...';
+  msg.classList.remove('hidden');
+
+  const { data, error } = await sbClient
+    .from('results')
+    .select('student_name, graded_score, total')
+    .not('graded_score', 'is', null);
+
+  if (error) {
+    msg.textContent = '불러오기 실패: ' + error.message;
+    return;
+  }
+  if (!data || data.length === 0) {
+    msg.textContent = '아직 채점된 시험이 없습니다. "시험지 확인"에서 O/X로 채점하면 여기에 나타납니다.';
+    if (scoreChartInstance) { scoreChartInstance.destroy(); scoreChartInstance = null; }
+    return;
+  }
+
+  const byStudent = new Map();
+  data.forEach((r) => {
+    if (!r.total) return;
+    const pct = (r.graded_score / r.total) * 100;
+    if (!byStudent.has(r.student_name)) byStudent.set(r.student_name, []);
+    byStudent.get(r.student_name).push(pct);
+  });
+
+  const labels = Array.from(byStudent.keys());
+  const averages = labels.map((name) => {
+    const values = byStudent.get(name);
+    return Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
+  });
+
+  msg.classList.add('hidden');
+
+  if (scoreChartInstance) scoreChartInstance.destroy();
+  scoreChartInstance = new Chart(el('scoreChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '평균 점수 (%)',
+        data: averages,
+        backgroundColor: '#1c3f66',
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, max: 100 } },
+    },
+  });
 }
 
 // ===== 이벤트 연결 =====
@@ -469,6 +573,10 @@ window.addEventListener('DOMContentLoaded', () => {
     showMentorScreen('manageScreen');
     loadManageListIntoView();
   });
+  el('goChartBtn').addEventListener('click', () => {
+    showMentorScreen('chartScreen');
+    loadScoreChart();
+  });
 
   el('backFromRegisterBtn').addEventListener('click', () => showMentorScreen('menuScreen'));
   el('backFromResultsBtn').addEventListener('click', () => showMentorScreen('menuScreen'));
@@ -476,11 +584,13 @@ window.addEventListener('DOMContentLoaded', () => {
   el('backFromExamDetailBtn').addEventListener('click', () => openStudentExams(selectedStudent));
   el('backFromManageBtn').addEventListener('click', () => showMentorScreen('menuScreen'));
   el('backFromEditExamBtn').addEventListener('click', () => showMentorScreen('manageScreen'));
+  el('backFromChartBtn').addEventListener('click', () => showMentorScreen('menuScreen'));
 
   el('submitExamBtn').addEventListener('click', handleSubmitExam);
   el('refreshStudentsBtn').addEventListener('click', loadStudentListIntoView);
   el('refreshManageBtn').addEventListener('click', loadManageListIntoView);
   el('saveEditExamBtn').addEventListener('click', handleSaveEditExam);
+  el('refreshChartBtn').addEventListener('click', loadScoreChart);
 
   checkUnlocked();
 });

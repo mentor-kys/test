@@ -498,6 +498,8 @@ async function handleGradeAnswer(resultId, qIndex, isCorrect) {
 }
 
 // ===== 성적 그래프 =====
+let chartRawData = [];
+
 async function loadScoreChart() {
   const msg = el('chartMsg');
   msg.textContent = '불러오는 중...';
@@ -505,34 +507,67 @@ async function loadScoreChart() {
 
   const { data, error } = await sbClient
     .from('results')
-    .select('student_name, graded_score, total')
-    .not('graded_score', 'is', null);
+    .select('student_name, exam_name, graded_score, total, submitted_at')
+    .not('graded_score', 'is', null)
+    .order('submitted_at', { ascending: true });
 
   if (error) {
     msg.textContent = '불러오기 실패: ' + error.message;
     return;
   }
-  if (!data || data.length === 0) {
+
+  chartRawData = data || [];
+
+  const select = el('chartStudentSelect');
+  const prevValue = select.value;
+  const names = Array.from(new Set(chartRawData.map((r) => r.student_name))).sort();
+  select.innerHTML = '<option value="ALL">전체 학생 평균</option>' +
+    names.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  select.value = names.includes(prevValue) || prevValue === 'ALL' ? prevValue : 'ALL';
+
+  renderChartFor(select.value);
+}
+
+function renderChartFor(selectedValue) {
+  const msg = el('chartMsg');
+
+  if (chartRawData.length === 0) {
     msg.textContent = '아직 채점된 시험이 없습니다. "시험지 확인"에서 O/X로 채점하면 여기에 나타납니다.';
+    msg.classList.remove('hidden');
     if (scoreChartInstance) { scoreChartInstance.destroy(); scoreChartInstance = null; }
     return;
   }
 
-  const byStudent = new Map();
-  data.forEach((r) => {
-    if (!r.total) return;
-    const pct = (r.graded_score / r.total) * 100;
-    if (!byStudent.has(r.student_name)) byStudent.set(r.student_name, []);
-    byStudent.get(r.student_name).push(pct);
-  });
-
-  const labels = Array.from(byStudent.keys());
-  const averages = labels.map((name) => {
-    const values = byStudent.get(name);
-    return Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
-  });
-
   msg.classList.add('hidden');
+  let labels;
+  let values;
+  let chartLabel;
+
+  if (selectedValue === 'ALL') {
+    const byStudent = new Map();
+    chartRawData.forEach((r) => {
+      if (!r.total) return;
+      const pct = (r.graded_score / r.total) * 100;
+      if (!byStudent.has(r.student_name)) byStudent.set(r.student_name, []);
+      byStudent.get(r.student_name).push(pct);
+    });
+    labels = Array.from(byStudent.keys());
+    values = labels.map((name) => {
+      const list = byStudent.get(name);
+      return Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10;
+    });
+    chartLabel = '평균 점수 (%)';
+  } else {
+    const rows = chartRawData.filter((r) => r.student_name === selectedValue && r.total);
+    const nameCounts = new Map();
+    rows.forEach((r) => nameCounts.set(r.exam_name, (nameCounts.get(r.exam_name) || 0) + 1));
+    labels = rows.map((r) => {
+      const date = new Date(r.submitted_at).toLocaleDateString('ko-KR');
+      return nameCounts.get(r.exam_name) > 1 ? `${r.exam_name} (${date})` : r.exam_name;
+    });
+    values = rows.map((r) => Math.round((r.graded_score / r.total) * 1000) / 10);
+    chartLabel = `${selectedValue} 점수 (%)`;
+  }
 
   if (scoreChartInstance) scoreChartInstance.destroy();
   scoreChartInstance = new Chart(el('scoreChart'), {
@@ -540,8 +575,8 @@ async function loadScoreChart() {
     data: {
       labels,
       datasets: [{
-        label: '평균 점수 (%)',
-        data: averages,
+        label: chartLabel,
+        data: values,
         backgroundColor: '#1c3f66',
         borderRadius: 4,
       }],
@@ -591,6 +626,7 @@ window.addEventListener('DOMContentLoaded', () => {
   el('refreshManageBtn').addEventListener('click', loadManageListIntoView);
   el('saveEditExamBtn').addEventListener('click', handleSaveEditExam);
   el('refreshChartBtn').addEventListener('click', loadScoreChart);
+  el('chartStudentSelect').addEventListener('change', (e) => renderChartFor(e.target.value));
 
   checkUnlocked();
 });

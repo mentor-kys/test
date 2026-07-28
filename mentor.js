@@ -62,8 +62,15 @@ function checkUnlocked() {
 
 // ===== 문제 등록 =====
 function parseQuestionBlocks(text) {
-  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
-  const parsed = lines.map((line) => ({ question_text: line }));
+  const blocks = text.split(/\n\s*\n+/).map((b) => b.trim()).filter(Boolean);
+  const parsed = [];
+
+  blocks.forEach((block) => {
+    const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
+    const question = lines.join(' ');
+    if (question) parsed.push({ question_text: question });
+  });
+
   return { parsed };
 }
 
@@ -245,7 +252,7 @@ async function openEditExam(examId) {
   }
 
   el('editExamName').value = exam.name;
-  el('editBulkQuestions').value = (questions || []).map((q) => q.question_text).join('\n');
+  el('editBulkQuestions').value = (questions || []).map((q) => q.question_text).join('\n\n');
 }
 
 async function handleSaveEditExam() {

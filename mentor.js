@@ -13,6 +13,7 @@ const SCREENS = [
   'manageScreen',
   'editExamScreen',
   'chartScreen',
+  'chartDetailScreen',
 ];
 
 let editingExamId = null;
@@ -508,9 +509,8 @@ async function handleGradeAnswer(resultId, qIndex, isCorrect) {
 let chartRawData = [];
 
 async function loadScoreChart() {
-  const msg = el('chartMsg');
-  msg.textContent = '불러오는 중...';
-  msg.classList.remove('hidden');
+  const container = el('chartListMentor');
+  container.textContent = '불러오는 중...';
 
   const { data, error } = await sbClient
     .from('results')
@@ -519,38 +519,54 @@ async function loadScoreChart() {
     .order('submitted_at', { ascending: true });
 
   if (error) {
-    msg.textContent = '불러오기 실패: ' + error.message;
+    container.textContent = '불러오기 실패: ' + error.message;
     return;
   }
 
   chartRawData = data || [];
 
-  const select = el('chartStudentSelect');
-  const prevValue = select.value;
-  const names = Array.from(new Set(chartRawData.map((r) => r.student_name))).sort();
-  select.innerHTML = '<option value="ALL">전체 학생 평균</option>' +
-    names.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
-  select.value = names.includes(prevValue) || prevValue === 'ALL' ? prevValue : 'ALL';
-
-  renderChartFor(select.value);
-}
-
-function renderChartFor(selectedValue) {
-  const msg = el('chartMsg');
-
   if (chartRawData.length === 0) {
-    msg.textContent = '아직 채점된 시험이 없습니다. "시험지 확인"에서 O/X로 채점하면 여기에 나타납니다.';
-    msg.classList.remove('hidden');
-    if (scoreChartInstance) { scoreChartInstance.destroy(); scoreChartInstance = null; }
+    container.textContent = '아직 채점된 시험이 없습니다. "시험지 확인"에서 O/X로 채점하면 여기에 나타납니다.';
     return;
   }
 
-  msg.classList.add('hidden');
+  const firstSeenAt = new Map();
+  chartRawData.forEach((r) => {
+    if (!firstSeenAt.has(r.student_name)) firstSeenAt.set(r.student_name, r.submitted_at);
+  });
+  const names = Array.from(firstSeenAt.keys())
+    .sort((a, b) => new Date(firstSeenAt.get(a)) - new Date(firstSeenAt.get(b)));
+
+  container.innerHTML = `
+    <div class="list-row clickable-row" data-chart-target="ALL">
+      <div class="list-row-main">
+        <div class="list-row-title">전체 학생 평균</div>
+      </div>
+      <div class="muted">›</div>
+    </div>
+  ` + names.map((name) => `
+    <div class="list-row clickable-row" data-chart-target="${escapeHtml(name)}">
+      <div class="list-row-main">
+        <div class="list-row-title">${escapeHtml(name)}</div>
+      </div>
+      <div class="muted">›</div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('[data-chart-target]').forEach((rowEl) => {
+    rowEl.addEventListener('click', () => openChartDetail(rowEl.dataset.chartTarget));
+  });
+}
+
+function openChartDetail(target) {
+  showMentorScreen('chartDetailScreen');
+  el('chartDetailTitle').textContent = target === 'ALL' ? '전체 학생 평균' : `${target} 님의 성적`;
+
   let labels;
   let values;
   let chartLabel;
 
-  if (selectedValue === 'ALL') {
+  if (target === 'ALL') {
     const byStudent = new Map();
     chartRawData.forEach((r) => {
       if (!r.total) return;
@@ -565,7 +581,9 @@ function renderChartFor(selectedValue) {
     });
     chartLabel = '평균 점수 (%)';
   } else {
-    const rows = chartRawData.filter((r) => r.student_name === selectedValue && r.total);
+    const rows = chartRawData
+      .filter((r) => r.student_name === target && r.total)
+      .sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at));
     const nameCounts = new Map();
     rows.forEach((r) => nameCounts.set(r.exam_name, (nameCounts.get(r.exam_name) || 0) + 1));
     labels = rows.map((r) => {
@@ -573,7 +591,7 @@ function renderChartFor(selectedValue) {
       return nameCounts.get(r.exam_name) > 1 ? `${r.exam_name} (${date})` : r.exam_name;
     });
     values = rows.map((r) => Math.round((r.graded_score / r.total) * 1000) / 10);
-    chartLabel = `${selectedValue} 점수 (%)`;
+    chartLabel = `${target} 점수 (%)`;
   }
 
   if (scoreChartInstance) scoreChartInstance.destroy();
@@ -586,10 +604,12 @@ function renderChartFor(selectedValue) {
         data: values,
         backgroundColor: '#1c3f66',
         borderRadius: 4,
+        maxBarThickness: 36,
       }],
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: { y: { beginAtZero: true, max: 100 } },
     },
@@ -627,13 +647,13 @@ window.addEventListener('DOMContentLoaded', () => {
   el('backFromManageBtn').addEventListener('click', () => showMentorScreen('menuScreen'));
   el('backFromEditExamBtn').addEventListener('click', () => showMentorScreen('manageScreen'));
   el('backFromChartBtn').addEventListener('click', () => showMentorScreen('menuScreen'));
+  el('backFromChartDetailBtn').addEventListener('click', () => showMentorScreen('chartScreen'));
 
   el('submitExamBtn').addEventListener('click', handleSubmitExam);
   el('refreshStudentsBtn').addEventListener('click', loadStudentListIntoView);
   el('refreshManageBtn').addEventListener('click', loadManageListIntoView);
   el('saveEditExamBtn').addEventListener('click', handleSaveEditExam);
   el('refreshChartBtn').addEventListener('click', loadScoreChart);
-  el('chartStudentSelect').addEventListener('change', (e) => renderChartFor(e.target.value));
 
   checkUnlocked();
 });

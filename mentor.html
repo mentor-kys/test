@@ -121,7 +121,7 @@
     </div>
   </div>
 
-  <!-- 성적 그래프 -->
+  <!-- 성적 그래프: 목록 -->
   <div id="chartScreen" class="hidden">
     <button class="back-btn" id="backFromChartBtn">← 메뉴로</button>
     <div class="card">
@@ -130,14 +130,18 @@
         <button class="secondary" id="refreshChartBtn">새로고침</button>
       </div>
       <div class="muted" style="margin-bottom:12px;">채점이 하나라도 된 시험만 집계됩니다.</div>
-      <div class="field">
-        <label for="chartStudentSelect">학생 선택</label>
-        <select id="chartStudentSelect">
-          <option value="ALL">전체 학생 평균</option>
-        </select>
+      <div id="chartListMentor" class="muted">불러오는 중...</div>
+    </div>
+  </div>
+
+  <!-- 성적 그래프: 상세 -->
+  <div id="chartDetailScreen" class="hidden">
+    <button class="back-btn" id="backFromChartDetailBtn">← 목록으로</button>
+    <div class="card">
+      <h2 id="chartDetailTitle"></h2>
+      <div class="chart-wrap">
+        <canvas id="scoreChart"></canvas>
       </div>
-      <div id="chartMsg" class="muted">불러오는 중...</div>
-      <canvas id="scoreChart" height="260"></canvas>
     </div>
   </div>
 </div>

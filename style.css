@@ -400,3 +400,10 @@ button:disabled {
   line-height: 1;
 }
 
+.chart-wrap {
+  position: relative;
+  height: 220px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+

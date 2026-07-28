@@ -68,7 +68,7 @@ function parseQuestionBlocks(text) {
 
   blocks.forEach((block) => {
     const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
-    const question = lines.join(' ');
+    const question = lines.join('\n');
     if (question) parsed.push({ question_text: question });
   });
 

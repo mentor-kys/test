@@ -164,6 +164,7 @@ button:disabled {
   font-size: 1.02rem;
   font-weight: 500;
   line-height: 1.55;
+  white-space: pre-line;
 }
 
 .answer-input {
